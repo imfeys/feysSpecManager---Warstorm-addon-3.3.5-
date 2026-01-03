@@ -1,4 +1,5 @@
 <img width="253" height="217" alt="image" src="https://github.com/user-attachments/assets/58fd63e5-10cd-464c-9a71-7275a98319c3" />
+
 🧭 How to Use FSM (feys Spec Manager)
 1️⃣ Open FSM
 
