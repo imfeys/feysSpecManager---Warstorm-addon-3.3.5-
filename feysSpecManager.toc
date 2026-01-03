@@ -1,0 +1,7 @@
+## Interface: 30300
+## Title: feysSpecManager
+## Notes: Target-based spec manager
+## Author: feys
+## Version: 1.1
+
+feysSpecManager.lua
