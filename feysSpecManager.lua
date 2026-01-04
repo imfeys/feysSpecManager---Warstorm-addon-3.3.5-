@@ -1,6 +1,5 @@
 -- =====================================
 -- FSM (feys Spec Manager)
--- Icon-based PvE / PvP with Tooltips
 -- Wrath of the Lich King 3.3.5 (30300)
 -- =====================================
 
@@ -13,7 +12,7 @@ local GAP = 6
 local HEADER_H = 20
 
 ------------------------------------------------
--- SPEC ICONS (Wrath talent tree icons)
+-- SPEC ICONS
 ------------------------------------------------
 local SPEC_ICONS = {
     PRIEST = {
@@ -70,7 +69,7 @@ local SPEC_ICONS = {
 }
 
 ------------------------------------------------
--- SPEC LISTS
+-- CLASS SPECS
 ------------------------------------------------
 local CLASS_SPECS = {
     PRIEST = {"holy","disc","shadow"},
@@ -86,15 +85,10 @@ local CLASS_SPECS = {
 }
 
 ------------------------------------------------
--- EXECUTION
+-- HELPERS
 ------------------------------------------------
 local function Exec(spec, mode)
-    SendChatMessage(
-        "talents spec "..spec.." "..mode,
-        "WHISPER",
-        nil,
-        UnitName("target")
-    )
+    SendChatMessage("talents spec "..spec.." "..mode, "WHISPER", nil, UnitName("target"))
 end
 
 local function Pretty(text)
@@ -161,13 +155,21 @@ autogear:SetScript("OnClick", function()
 end)
 
 ------------------------------------------------
--- SPEC ICON BUTTONS
+-- MODE LABELS
+------------------------------------------------
+local pveLabel = frame:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall")
+pveLabel:SetText("PVE:")
+
+local pvpLabel = frame:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall")
+pvpLabel:SetText("PVP:")
+
+------------------------------------------------
+-- SPEC BUTTONS
 ------------------------------------------------
 local buttons = {}
 
 local function GetButton(i)
     if buttons[i] then return buttons[i] end
-
     local b = CreateFrame("Button", nil, frame)
     b:SetSize(ICON, ICON)
 
@@ -184,16 +186,26 @@ end
 local function UpdateUI()
     for _,b in ipairs(buttons) do b:Hide() end
 
-    if not UnitExists("target") or not UnitIsPlayer("target") then
-        frame:SetSize(200, HEADER_H + PADDING*2)
-        classText:SetText("no target")
-        return
-    end
+if not UnitExists("target") or not UnitIsPlayer("target") then
+    classText:SetText("no target")
+
+    pveLabel:Hide()
+    pvpLabel:Hide()
+    autogear:Hide()
+
+    -- tighter idle height (no dead space)
+    frame:SetSize(200, HEADER_H + 4)
+
+    return
+end
+
+    pveLabel:Show()
+    pvpLabel:Show()
+    autogear:Show()
 
     local _, class = UnitClass("target")
     local specs = CLASS_SPECS[class]
     local icons = SPEC_ICONS[class]
-
     if not specs or not icons then return end
 
     classText:SetText(class)
@@ -201,55 +213,63 @@ local function UpdateUI()
     local y = -HEADER_H - PADDING
     local index = 1
 
-    for _,mode in ipairs({"pve","pvp"}) do
-        local label = frame:CreateFontString(nil,"OVERLAY","GameFontHighlightSmall")
-        label:SetPoint("TOPLEFT",PADDING,y)
-        label:SetText(mode:upper()..":")
-        y = y - 18
+    -- PVE
+    pveLabel:SetPoint("TOPLEFT", PADDING, y)
+    y = y - 18
 
-        for i,spec in ipairs(specs) do
-            local b = GetButton(index)
-            b.icon:SetTexture(icons[spec])
+    for i,spec in ipairs(specs) do
+        local b = GetButton(index)
+        b.icon:SetTexture(icons[spec])
 
-            b:SetPoint(
-                "TOPLEFT",
-                frame,
-                "TOPLEFT",
-                PADDING + (i-1)*(ICON+GAP),
-                y
-            )
+        b:SetPoint("TOPLEFT", frame, "TOPLEFT", PADDING + (i-1)*(ICON+GAP), y)
 
-            b:SetScript("OnEnter", function(self)
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                GameTooltip:SetText(
-                    Pretty(spec) .. " (" .. mode:upper() .. ")",
-                    1,1,1
-                )
-                GameTooltip:AddLine("Click to assign spec",0.8,0.8,0.8)
-                GameTooltip:Show()
-            end)
+        b:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText(Pretty(spec).." (PVE)",1,1,1)
+            GameTooltip:AddLine("Click to assign spec",0.8,0.8,0.8)
+            GameTooltip:Show()
+        end)
+        b:SetScript("OnLeave", GameTooltip_Hide)
+        b:SetScript("OnClick", function() Exec(spec,"pve") end)
 
-            b:SetScript("OnLeave", GameTooltip_Hide)
+        b:Show()
+        index = index + 1
+    end
 
-            b:SetScript("OnClick", function()
-                Exec(spec, mode)
-            end)
+    y = y - ICON - GAP
 
-            b:Show()
-            index = index + 1
-        end
+    -- PVP
+    pvpLabel:SetPoint("TOPLEFT", PADDING, y)
+    y = y - 18
 
-        y = y - ICON - GAP
+    for i,spec in ipairs(specs) do
+        local b = GetButton(index)
+        b.icon:SetTexture(icons[spec])
+
+        b:SetPoint("TOPLEFT", frame, "TOPLEFT", PADDING + (i-1)*(ICON+GAP), y)
+
+        b:SetScript("OnEnter", function(self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText(Pretty(spec).." (PVP)",1,1,1)
+            GameTooltip:AddLine("Click to assign spec",0.8,0.8,0.8)
+            GameTooltip:Show()
+        end)
+        b:SetScript("OnLeave", GameTooltip_Hide)
+        b:SetScript("OnClick", function() Exec(spec,"pvp") end)
+
+        b:Show()
+        index = index + 1
     end
 
     local cols = #specs
-    local width = PADDING*2 + (cols*ICON) + ((cols-1)*GAP)
-    local height = HEADER_H + ICON*2 + 54
-    frame:SetSize(width, height)
+    frame:SetSize(
+        PADDING*2 + (cols*ICON) + ((cols-1)*GAP),
+        HEADER_H + ICON*2 + 54
+    )
 end
 
 ------------------------------------------------
--- FSM LAUNCHER (ALWAYS VISIBLE)
+-- LAUNCHER
 ------------------------------------------------
 local launcher = CreateFrame("Button","FSMLauncher",UIParent)
 launcher:SetSize(28,28)
